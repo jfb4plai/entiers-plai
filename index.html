@@ -182,23 +182,29 @@
 
     <!-- ---- ONGLET : CLASSE ---- -->
     <div id="tab-classe" class="tab-content hidden">
-      <div class="classe-info-box">
+
+      <!-- Info classe (masqué si aucune classe) -->
+      <div id="classe-info-box" class="classe-info-box hidden">
         <p style="font-weight:700;">Classe : <span id="classe-display-nom">—</span></p>
         <p style="margin-top:4px; color:#6b7280; font-size:.9rem;">Code d'accès pour les élèves :</p>
         <span class="code-grand" id="classe-display-code">—</span>
         <p style="font-size:.85rem; color:#6b7280;">Les élèves saisissent ce code + leur prénom pour rejoindre.</p>
       </div>
 
+      <!-- Formulaire toujours visible -->
       <h3>Créer une nouvelle classe</h3>
       <form id="form-create-classe" style="display:flex; gap:12px; margin-bottom:24px; flex-wrap:wrap;">
-        <input type="text" id="input-classe-nom" placeholder="Nom de la classe" style="flex:1; min-width:160px;">
+        <input type="text" id="input-classe-nom" placeholder="Ex : 3B Maths" style="flex:1; min-width:160px;">
         <button type="submit" class="btn-primary">Créer</button>
       </form>
 
-      <h3>Élèves connectés</h3>
-      <ul id="liste-eleves" class="liste-eleves-ul">
-        <li class="empty">Chargement...</li>
-      </ul>
+      <!-- Liste élèves (masquée si aucune classe) -->
+      <div id="eleves-section" class="hidden">
+        <h3>Élèves connectés</h3>
+        <ul id="liste-eleves" class="liste-eleves-ul">
+          <li class="empty">Chargement...</li>
+        </ul>
+      </div>
     </div>
 
     <!-- ---- ONGLET : RÉSULTATS ---- -->

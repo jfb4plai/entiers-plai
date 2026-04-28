@@ -458,11 +458,20 @@ function ouvrirTBI(exerciceId) {
 
 // --- Classe ---
 async function chargerClasse() {
+  const infoBox = document.getElementById('classe-info-box');
+  const elevesSection = document.getElementById('eleves-section');
+
   if (!state.classe) {
-    document.getElementById('tab-classe').innerHTML =
-      '<p>Créez une classe dans la section ci-dessus.</p>';
+    // Pas encore de classe : cacher info + élèves, garder le formulaire visible
+    if (infoBox) infoBox.classList.add('hidden');
+    if (elevesSection) elevesSection.classList.add('hidden');
     return;
   }
+
+  // Classe existante : tout afficher
+  if (infoBox) infoBox.classList.remove('hidden');
+  if (elevesSection) elevesSection.classList.remove('hidden');
+
   document.getElementById('classe-display-nom').textContent = state.classe.nom;
   document.getElementById('classe-display-code').textContent = state.classe.code_acces;
 
@@ -470,7 +479,7 @@ async function chargerClasse() {
   const ul = document.getElementById('liste-eleves');
   ul.innerHTML = '';
   if (eleves.length === 0) {
-    ul.innerHTML = '<li class="empty">Aucun élève connecté.</li>';
+    ul.innerHTML = '<li class="empty">Aucun élève connecté pour le moment.</li>';
     return;
   }
   eleves.forEach(el => {
