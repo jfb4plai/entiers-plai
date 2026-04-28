@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Entiers Relatifs — PLAI</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<!-- ============================================================
+     VUE : ACCUEIL / CHOIX DU RÔLE
+     ============================================================ -->
+<div id="view-login" class="view">
+  <div class="card" style="text-align:center;">
+    <h1>Entiers Relatifs</h1>
+    <p class="login-subtitle">Addition &amp; soustraction sur la droite numérique</p>
+    <div class="login-btns">
+      <button id="btn-login-enseignant" class="btn-login-role btn-enseignant">
+        Enseignant
+      </button>
+      <button id="btn-login-eleve" class="btn-login-role btn-eleve">
+        Élève
+      </button>
+    </div>
+    <p class="riss-note">
+      Fondements : Hirsch &amp; Roditi (2023) · Barrouillet et al. (2007)<br>
+      Hérold (2012) · Luengo (2009) · Fouchet-Isambard &amp; Millon Faure (2025)<br>
+      <em>Corpus RISS — hal-05188689, hal-01570674, hal-01780008, hal-00699802, hal-05361521</em>
+    </p>
+  </div>
+</div>
+
+<!-- ============================================================
+     VUE : CONNEXION ENSEIGNANT
+     ============================================================ -->
+<div id="view-login-enseignant" class="view hidden">
+  <div class="card">
+    <h2>Connexion enseignant</h2>
+    <form id="form-login-enseignant">
+      <div class="form-group">
+        <label for="ens-email">Adresse email</label>
+        <input type="email" id="ens-email" required autocomplete="email">
+      </div>
+      <div class="form-group">
+        <label for="ens-password">Mot de passe</label>
+        <input type="password" id="ens-password" required autocomplete="current-password">
+      </div>
+      <p id="ens-login-error" class="error-msg"></p>
+      <button type="submit" class="btn-primary" style="width:100%">Se connecter</button>
+    </form>
+    <div style="text-align:center; margin-top:12px;">
+      <button id="btn-signup" class="link-btn">Créer un compte</button>
+    </div>
+    <div style="text-align:center; margin-top:8px;">
+      <button id="btn-retour-login-ens" class="link-btn">Retour</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================
+     VUE : CONNEXION ÉLÈVE
+     ============================================================ -->
+<div id="view-login-eleve" class="view hidden">
+  <div class="card">
+    <h2>Rejoindre la classe</h2>
+    <form id="form-login-eleve">
+      <div class="form-group">
+        <label for="el-code">Code de classe</label>
+        <input type="text" id="el-code" required
+               placeholder="Ex : ABCD12"
+               maxlength="6"
+               style="text-transform:uppercase; letter-spacing:4px; font-size:1.4rem; font-weight:900; text-align:center;">
+      </div>
+      <div class="form-group">
+        <label for="el-nom">Ton prénom</label>
+        <input type="text" id="el-nom" required placeholder="Prénom">
+      </div>
+      <p id="el-login-error" class="error-msg"></p>
+      <button type="submit" class="btn-primary" style="width:100%">Rejoindre la classe</button>
+    </form>
+    <div style="text-align:center; margin-top:8px;">
+      <button id="btn-retour-login-el" class="link-btn">Retour</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================
+     VUE : INTERFACE ENSEIGNANT
+     ============================================================ -->
+<div id="view-enseignant" class="view hidden" style="padding:0;">
+
+  <!-- En-tête -->
+  <div class="ens-header">
+    <h1>Entiers Relatifs</h1>
+    <div style="display:flex; align-items:center; gap:16px; flex-wrap:wrap;">
+      <span class="ens-info">Connecté : <strong id="ens-email-display"></strong></span>
+      <button id="btn-logout" class="btn-secondary" style="font-size:.85rem; padding:7px 14px;">Déconnexion</button>
+    </div>
+  </div>
+
+  <div class="ens-body">
+
+    <!-- Résumé classe rapide -->
+    <div class="classe-rapide">
+      <div>
+        <div class="libelle">Classe active</div>
+        <strong id="ens-classe-nom">—</strong>
+      </div>
+      <div>
+        <div class="libelle">Code d'accès élèves</div>
+        <div class="code" id="ens-classe-code">—</div>
+      </div>
+      <div>
+        <label for="select-classe" style="font-size:.85rem; color:#6b7280;">Changer de classe :</label>
+        <select id="select-classe" style="width:auto; margin-top:4px;"></select>
+      </div>
+    </div>
+
+    <!-- Onglets -->
+    <div class="tabs">
+      <button class="tab-btn active" data-tab="tab-exercices">Mes exercices</button>
+      <button class="tab-btn" data-tab="tab-classe">Ma classe</button>
+      <button class="tab-btn" data-tab="tab-resultats">Résultats en direct</button>
+    </div>
+
+    <!-- ---- ONGLET : EXERCICES ---- -->
+    <div id="tab-exercices" class="tab-content">
+      <h3>Créer un exercice</h3>
+      <div class="create-exo-form">
+        <form id="form-create-exercice">
+          <div class="form-row">
+            <div class="form-group" style="flex:2;">
+              <label for="ex-titre-input">Titre (optionnel)</label>
+              <input type="text" id="ex-titre-input" placeholder="Ex : Positifs faciles">
+            </div>
+            <div class="form-group">
+              <label for="ex-niveau">Niveau</label>
+              <select id="ex-niveau">
+                <option value="1">1 — Positifs 0–10</option>
+                <option value="2">2 — Résultat positif</option>
+                <option value="3">3 — Entiers relatifs</option>
+                <option value="4">4 — Libre</option>
+              </select>
+            </div>
+          </div>
+          <div class="form-row" style="align-items:flex-end;">
+            <div class="form-group">
+              <label for="ex-a">Terme A</label>
+              <input type="number" id="ex-a" min="-15" max="15" placeholder="5">
+            </div>
+            <div class="form-group" style="max-width:90px;">
+              <label for="ex-op">Op.</label>
+              <select id="ex-op">
+                <option value="+">+</option>
+                <option value="-">−</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="ex-b">Terme B</label>
+              <input type="number" id="ex-b" min="-15" max="15" placeholder="3">
+            </div>
+            <div class="form-group" style="max-width:140px;">
+              <label>&nbsp;</label>
+              <button type="button" id="btn-random-exo" class="btn-sm btn-random" style="width:100%; padding:10px;">
+                Aléatoire
+              </button>
+            </div>
+            <div class="form-group" style="max-width:140px;">
+              <label>&nbsp;</label>
+              <button type="submit" class="btn-primary" style="width:100%; padding:10px;">Créer</button>
+            </div>
+          </div>
+        </form>
+      </div>
+
+      <h3>Mes exercices</h3>
+      <div id="ens-liste-exercices">
+        <p class="loading">Chargement...</p>
+      </div>
+    </div>
+
+    <!-- ---- ONGLET : CLASSE ---- -->
+    <div id="tab-classe" class="tab-content hidden">
+      <div class="classe-info-box">
+        <p style="font-weight:700;">Classe : <span id="classe-display-nom">—</span></p>
+        <p style="margin-top:4px; color:#6b7280; font-size:.9rem;">Code d'accès pour les élèves :</p>
+        <span class="code-grand" id="classe-display-code">—</span>
+        <p style="font-size:.85rem; color:#6b7280;">Les élèves saisissent ce code + leur prénom pour rejoindre.</p>
+      </div>
+
+      <h3>Créer une nouvelle classe</h3>
+      <form id="form-create-classe" style="display:flex; gap:12px; margin-bottom:24px; flex-wrap:wrap;">
+        <input type="text" id="input-classe-nom" placeholder="Nom de la classe" style="flex:1; min-width:160px;">
+        <button type="submit" class="btn-primary">Créer</button>
+      </form>
+
+      <h3>Élèves connectés</h3>
+      <ul id="liste-eleves" class="liste-eleves-ul">
+        <li class="empty">Chargement...</li>
+      </ul>
+    </div>
+
+    <!-- ---- ONGLET : RÉSULTATS ---- -->
+    <div id="tab-resultats" class="tab-content hidden">
+      <div class="flex-between" style="margin-bottom:16px;">
+        <h3 style="margin:0;">Résultats en temps réel</h3>
+        <span style="font-size:.8rem; color:#16a34a;">● Mise à jour automatique</span>
+      </div>
+      <div id="resultats-container">
+        <p class="loading">Chargement...</p>
+      </div>
+    </div>
+
+  </div><!-- /ens-body -->
+</div><!-- /view-enseignant -->
+
+<!-- ============================================================
+     VUE : ACCUEIL ÉLÈVE (liste des exercices)
+     ============================================================ -->
+<div id="view-eleve-accueil" class="view hidden">
+  <div class="el-header">
+    <h1>Mes exercices</h1>
+    <p class="el-bienvenue" id="el-bienvenue"></p>
+  </div>
+  <div style="max-width:600px; margin:0 auto; padding:0 8px;">
+    <div id="el-liste-exercices">
+      <p class="loading">Chargement...</p>
+    </div>
+    <div style="text-align:center; margin-top:24px;">
+      <button onclick="localStorage.removeItem('eleve'); localStorage.removeItem('classe'); location.reload();"
+              class="link-btn">Changer de classe</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================
+     VUE : EXERCICE ÉLÈVE
+     ============================================================ -->
+<div id="view-eleve-exercice" class="view hidden">
+  <div style="max-width:680px; margin:0 auto; padding:0 8px;">
+
+    <div class="ex-header">
+      <button id="btn-el-retour" class="btn-secondary">Retour</button>
+      <h2 id="ex-titre" style="margin:0;">Exercice</h2>
+    </div>
+
+    <!-- Énoncé + champ réponse -->
+    <div class="enonce-zone">
+      <div id="ex-enonce" style="display:flex; align-items:center; justify-content:center; flex-wrap:wrap; gap:6px;"></div>
+      <div class="valider-row" style="margin-top:20px;">
+        <button id="btn-valider" class="btn-primary" style="font-size:1.1rem; padding:14px 36px;">
+          Valider
+        </button>
+      </div>
+    </div>
+
+    <!-- Rétroaction socratique -->
+    <div id="ex-retro" class="retro-zone"></div>
+
+    <!-- Bouton exercice suivant (caché jusqu'à complétion) -->
+    <button id="btn-exercice-suivant" class="btn-primary hidden">
+      Retour aux exercices
+    </button>
+
+    <!-- Droite numérique -->
+    <div style="margin-top:20px;">
+      <p style="font-size:.9rem; font-weight:700; color:#6b7280; margin-bottom:10px; text-transform:uppercase; letter-spacing:.5px;">
+        Aide — Droite numérique
+      </p>
+      <div id="dn-container"></div>
+    </div>
+
+    <p class="riss-note">
+      Droite numérique : Hirsch &amp; Roditi (2023) hal-05188689 ·
+      Remédiation : Luengo (2009) hal-00699802
+    </p>
+
+  </div>
+</div>
+
+<!-- ============================================================
+     SCRIPTS
+     ============================================================ -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script src="js/config.js"></script>
+<script src="js/droite-num.js"></script>
+<script src="js/remediation.js"></script>
+<script src="js/db.js"></script>
+<script src="js/app.js"></script>
+
+</body>
+</html>

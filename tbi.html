@@ -1,0 +1,360 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Mode TBI — Entiers Relatifs</title>
+  <link rel="stylesheet" href="css/style.css">
+  <style>
+    /* Surcharges TBI : tout est agrandi pour la projection */
+    body { background: #0f172a; color: white; font-size: 20px; }
+
+    #tbi-header {
+      background: #1e293b;
+      padding: 16px 32px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 2px solid #334155;
+    }
+    #tbi-header h1 { color: #60a5fa; font-size: 1.6rem; margin: 0; }
+    .tbi-code-badge {
+      background: #1d4ed8;
+      color: white;
+      padding: 8px 20px;
+      border-radius: 8px;
+      font-size: 1.2rem;
+      font-weight: 900;
+      letter-spacing: 4px;
+      font-family: monospace;
+    }
+
+    #tbi-body { max-width: 1200px; margin: 0 auto; padding: 32px 24px; }
+
+    /* Énoncé géant */
+    #tbi-enonce {
+      text-align: center;
+      background: #1e293b;
+      border-radius: 16px;
+      padding: 40px;
+      margin-bottom: 28px;
+    }
+    .tbi-terme {
+      font-size: 5rem;
+      font-weight: 900;
+      color: #60a5fa;
+    }
+    .tbi-op {
+      font-size: 5rem;
+      font-weight: 900;
+      color: #fbbf24;
+      margin: 0 16px;
+    }
+    .tbi-egal {
+      font-size: 5rem;
+      font-weight: 900;
+      color: #94a3b8;
+      margin: 0 16px;
+    }
+    .tbi-result {
+      font-size: 5rem;
+      font-weight: 900;
+      color: #a78bfa;
+    }
+    .tbi-result.hidden-val { color: #334155; }
+
+    /* Droite numérique en mode TBI */
+    #tbi-dn-container .dn-section {
+      background: #1e293b;
+      border-color: #334155;
+    }
+    #tbi-dn-container .dn-label { color: #94a3b8; }
+    #tbi-dn-container svg text { fill: #e2e8f0 !important; }
+
+    /* Résultats élèves en direct */
+    #tbi-resultats {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+      gap: 12px;
+      margin-top: 24px;
+    }
+    .tbi-eleve-card {
+      background: #1e293b;
+      border: 2px solid #334155;
+      border-radius: 10px;
+      padding: 14px 16px;
+      text-align: center;
+      transition: border-color .3s;
+    }
+    .tbi-eleve-card.correct { border-color: #16a34a; background: #14532d22; }
+    .tbi-eleve-card.incorrect { border-color: #dc2626; background: #7f1d1d22; }
+    .tbi-eleve-card.en-cours { border-color: #d97706; }
+    .tbi-eleve-nom { font-size: .95rem; font-weight: 700; color: #e2e8f0; }
+    .tbi-eleve-reponse { font-size: 1.8rem; font-weight: 900; margin-top: 4px; }
+    .tbi-eleve-card.correct .tbi-eleve-reponse { color: #4ade80; }
+    .tbi-eleve-card.incorrect .tbi-eleve-reponse { color: #f87171; }
+    .tbi-eleve-card.en-cours .tbi-eleve-reponse { color: #fcd34d; }
+
+    /* Barre de progression */
+    #tbi-stats {
+      display: flex;
+      gap: 24px;
+      margin-bottom: 24px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+    .tbi-stat { text-align: center; }
+    .tbi-stat-val { font-size: 2.5rem; font-weight: 900; }
+    .tbi-stat-lbl { font-size: .85rem; color: #94a3b8; }
+    .tbi-stat-val.ok { color: #4ade80; }
+    .tbi-stat-val.warn { color: #fcd34d; }
+
+    .progress-bar {
+      flex: 1;
+      height: 16px;
+      background: #334155;
+      border-radius: 8px;
+      overflow: hidden;
+      min-width: 200px;
+    }
+    .progress-fill {
+      height: 100%;
+      background: linear-gradient(90deg, #16a34a, #4ade80);
+      border-radius: 8px;
+      transition: width .5s ease;
+    }
+
+    /* Contrôles enseignant */
+    #tbi-controls {
+      display: flex;
+      gap: 12px;
+      margin-bottom: 24px;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+    .btn-tbi-ctrl {
+      background: #334155;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      padding: 10px 20px;
+      font-size: 1rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: background .15s;
+    }
+    .btn-tbi-ctrl:hover { background: #475569; }
+    .btn-tbi-reveal {
+      background: #7c3aed;
+    }
+    .btn-tbi-reveal:hover { background: #6d28d9; }
+
+    .tbi-legend {
+      display: flex;
+      gap: 16px;
+      font-size: .85rem;
+      color: #94a3b8;
+      margin-left: auto;
+    }
+    .legend-dot {
+      display: inline-block;
+      width: 12px; height: 12px;
+      border-radius: 50%;
+      margin-right: 4px;
+      vertical-align: middle;
+    }
+  </style>
+</head>
+<body>
+
+<!-- En-tête TBI -->
+<div id="tbi-header">
+  <h1>Entiers Relatifs — Mode TBI</h1>
+  <div style="display:flex; align-items:center; gap:16px;">
+    <span style="color:#94a3b8; font-size:.9rem;">Code classe :</span>
+    <span class="tbi-code-badge" id="tbi-code">—</span>
+  </div>
+</div>
+
+<div id="tbi-body">
+
+  <!-- Contrôles enseignant -->
+  <div id="tbi-controls">
+    <button class="btn-tbi-ctrl" id="btn-tbi-reveal">Révéler la réponse</button>
+    <button class="btn-tbi-ctrl" id="btn-tbi-reset">Réinitialiser les réponses</button>
+    <div class="tbi-legend">
+      <span><span class="legend-dot" style="background:#4ade80;"></span>Correct</span>
+      <span><span class="legend-dot" style="background:#f87171;"></span>Incorrect</span>
+      <span><span class="legend-dot" style="background:#fcd34d;"></span>En cours</span>
+    </div>
+  </div>
+
+  <!-- Énoncé -->
+  <div id="tbi-enonce">
+    <span class="tbi-terme" id="tbi-a">?</span>
+    <span class="tbi-op" id="tbi-op">+</span>
+    <span class="tbi-terme" id="tbi-b">?</span>
+    <span class="tbi-egal">=</span>
+    <span class="tbi-result hidden-val" id="tbi-res">?</span>
+  </div>
+
+  <!-- Droite numérique -->
+  <div id="tbi-dn-container"></div>
+
+  <!-- Stats -->
+  <div id="tbi-stats" style="margin-top:24px;">
+    <div class="tbi-stat">
+      <div class="tbi-stat-val ok" id="stat-correct">0</div>
+      <div class="tbi-stat-lbl">Corrects</div>
+    </div>
+    <div class="tbi-stat">
+      <div class="tbi-stat-val warn" id="stat-incorrect">0</div>
+      <div class="tbi-stat-lbl">Incorrects</div>
+    </div>
+    <div class="tbi-stat">
+      <div class="tbi-stat-val" id="stat-total" style="color:#94a3b8;">0</div>
+      <div class="tbi-stat-lbl">Réponses</div>
+    </div>
+    <div class="progress-bar">
+      <div class="progress-fill" id="progress-fill" style="width:0%"></div>
+    </div>
+  </div>
+
+  <!-- Cartes élèves -->
+  <h3 style="color:#94a3b8; font-size:1rem; margin-bottom:12px; text-transform:uppercase; letter-spacing:1px;">
+    Réponses des élèves
+  </h3>
+  <div id="tbi-resultats">
+    <p style="color:#475569;">En attente des réponses...</p>
+  </div>
+
+</div><!-- /tbi-body -->
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script src="js/config.js"></script>
+<script src="js/droite-num.js"></script>
+<script src="js/db.js"></script>
+<script>
+
+// --- Paramètres depuis l'URL ---
+const params = new URLSearchParams(location.search);
+const exerciceId = params.get('exo');
+const classeId = params.get('classe');
+
+let droiteTBI = null;
+let exerciceCourant = null;
+let resultatsMap = {};   // eleveId → résultat
+let revele = false;
+
+async function init() {
+  if (!exerciceId || !classeId) {
+    document.body.innerHTML = '<p style="color:red; padding:40px;">Paramètres manquants. Ouvrir depuis le dashboard enseignant.</p>';
+    return;
+  }
+
+  // Charger l'exercice
+  const { data: ex } = await _sb.from('er_exercices').select('*').eq('id', exerciceId).single();
+  if (!ex) { document.body.innerHTML = '<p style="color:red; padding:40px;">Exercice introuvable.</p>'; return; }
+  exerciceCourant = ex;
+
+  // Charger la classe
+  const { data: classe } = await _sb.from('er_classes').select('*').eq('id', classeId).single();
+  if (classe) document.getElementById('tbi-code').textContent = classe.code_acces;
+
+  // Afficher l'énoncé
+  document.getElementById('tbi-a').textContent = ex.terme_a;
+  document.getElementById('tbi-op').textContent = ex.operateur;
+  document.getElementById('tbi-b').textContent = ex.terme_b;
+  const bEff = ex.operateur === '+' ? ex.terme_b : -ex.terme_b;
+  const correct = ex.terme_a + bEff;
+  document.getElementById('tbi-res').dataset.val = correct;
+
+  // Droite numérique
+  droiteTBI = new DroiteNumerique('tbi-dn-container', { showResult: false, compact: true });
+  droiteTBI.render(ex.terme_a, ex.terme_b, ex.operateur, false);
+
+  // Charger résultats existants
+  const resultatsInit = await getResultatsByExercice(exerciceId);
+  resultatsInit.forEach(r => { resultatsMap[r.eleve_id] = r; });
+  rafraichirAffichage();
+
+  // Écoute temps réel
+  subscribeResultats(classeId, async () => {
+    const resultats = await getResultatsByExercice(exerciceId);
+    resultatsMap = {};
+    resultats.forEach(r => { resultatsMap[r.eleve_id] = r; });
+    rafraichirAffichage();
+  });
+}
+
+function rafraichirAffichage() {
+  const resultats = Object.values(resultatsMap);
+  const nbCorrect = resultats.filter(r => r.correct).length;
+  const nbIncorrect = resultats.filter(r => !r.correct).length;
+  const total = resultats.length;
+
+  document.getElementById('stat-correct').textContent = nbCorrect;
+  document.getElementById('stat-incorrect').textContent = nbIncorrect;
+  document.getElementById('stat-total').textContent = total;
+
+  const pct = total > 0 ? Math.round((nbCorrect / total) * 100) : 0;
+  document.getElementById('progress-fill').style.width = pct + '%';
+
+  // Cartes élèves
+  const container = document.getElementById('tbi-resultats');
+  if (resultats.length === 0) {
+    container.innerHTML = '<p style="color:#475569;">En attente des réponses...</p>';
+    return;
+  }
+
+  container.innerHTML = '';
+  // Trier : corrects d'abord, puis incorrects
+  resultats.sort((a, b) => (b.correct ? 1 : 0) - (a.correct ? 1 : 0));
+  resultats.forEach(r => {
+    const card = document.createElement('div');
+    card.className = 'tbi-eleve-card ' + (r.correct ? 'correct' : 'incorrect');
+    card.innerHTML = `
+      <div class="tbi-eleve-nom">${r.eleves?.nom || '—'}</div>
+      <div class="tbi-eleve-reponse">${r.reponse ?? '?'}</div>
+      <div style="font-size:.75rem; color:#94a3b8; margin-top:4px;">
+        ${r.nb_tentatives} essai${r.nb_tentatives > 1 ? 's' : ''} · ${r.nb_indices} indice${r.nb_indices !== 1 ? 's' : ''}
+      </div>
+    `;
+    container.appendChild(card);
+  });
+}
+
+// Révéler la réponse
+document.getElementById('btn-tbi-reveal').addEventListener('click', () => {
+  revele = !revele;
+  const resEl = document.getElementById('tbi-res');
+  if (revele) {
+    resEl.textContent = resEl.dataset.val;
+    resEl.classList.remove('hidden-val');
+    droiteTBI.render(exerciceCourant.terme_a, exerciceCourant.terme_b, exerciceCourant.operateur, true);
+    document.getElementById('btn-tbi-reveal').textContent = 'Masquer la réponse';
+  } else {
+    resEl.textContent = '?';
+    resEl.classList.add('hidden-val');
+    droiteTBI.render(exerciceCourant.terme_a, exerciceCourant.terme_b, exerciceCourant.operateur, false);
+    document.getElementById('btn-tbi-reveal').textContent = 'Révéler la réponse';
+  }
+});
+
+// Réinitialiser (vide l'affichage local sans supprimer de la BD)
+document.getElementById('btn-tbi-reset').addEventListener('click', () => {
+  if (!confirm('Réinitialiser l\'affichage des réponses ?')) return;
+  resultatsMap = {};
+  revele = false;
+  document.getElementById('tbi-res').textContent = '?';
+  document.getElementById('tbi-res').classList.add('hidden-val');
+  droiteTBI.render(exerciceCourant.terme_a, exerciceCourant.terme_b, exerciceCourant.operateur, false);
+  document.getElementById('btn-tbi-reveal').textContent = 'Révéler la réponse';
+  rafraichirAffichage();
+});
+
+init();
+</script>
+
+</body>
+</html>
