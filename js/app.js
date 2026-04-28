@@ -7,7 +7,11 @@ const state = {
   role: null,           // 'enseignant' | 'eleve'
   user: null,           // Supabase user (enseignant) | objet élève
   classe: null,         // objet classe courant
-  exercices: [],        // exercices de l'enseignant ou assignés à l'élève
+  exercices: [],        // exercices de l'enseignant
+  taches: [],           // tâches de l'enseignant
+  tacheActive: null,    // tâche en cours d'édition (enseignant)
+  tacheCourante: null,  // tâche en cours (élève)
+  tacheIndex: 0,        // index exercice courant dans la tâche (élève)
   exerciceCourant: null,
   resultats: [],
   subscription: null,
@@ -149,26 +153,70 @@ async function rafraichirExercicesEleve() {
   const liste = document.getElementById('el-liste-exercices');
   liste.innerHTML = '<p class="loading">Chargement...</p>';
   try {
-    const exos = await getExercicesAssignesAClasse(state.classe.id);
-    state.exercices = exos;
-    if (exos.length === 0) {
-      liste.innerHTML = '<p class="empty">Aucun exercice assigné pour le moment.</p>';
+    const taches = await getTachesAssigneesAClasse(state.classe.id);
+    state.taches = taches;
+    if (taches.length === 0) {
+      liste.innerHTML = '<p class="empty">Aucune tâche assignée pour le moment.</p>';
       return;
     }
     liste.innerHTML = '';
-    exos.forEach(ex => {
+    taches.forEach(t => {
+      const nbEx = t.exercices?.length || 0;
       const card = document.createElement('div');
       card.className = 'exercice-card';
-      const niveauLabels = ['', 'Positifs (0-10)', 'Résultat positif', 'Entiers relatifs', 'Enchaîné'];
       card.innerHTML = `
-        <div class="ex-titre">${ex.titre || `${ex.terme_a} ${ex.operateur} ${ex.terme_b}`}</div>
-        <div class="ex-niveau">Niveau ${ex.niveau} — ${niveauLabels[ex.niveau] || ''}</div>
-        <button class="btn-primary" onclick="demarrerExercice('${ex.id}')">Commencer</button>
+        <div>
+          <div class="ex-titre">${t.titre}</div>
+          <div class="ex-niveau">${nbEx} exercice${nbEx !== 1 ? 's' : ''}</div>
+        </div>
+        <button class="btn-primary" onclick="demarrerTache('${t.id}')">Commencer</button>
       `;
       liste.appendChild(card);
     });
   } catch (err) {
     liste.innerHTML = '<p class="error">Erreur de chargement.</p>';
+  }
+}
+
+function demarrerTache(tacheId) {
+  const tache = state.taches.find(t => t.id === tacheId);
+  if (!tache || !tache.exercices?.length) {
+    alert('Cette tâche ne contient aucun exercice.');
+    return;
+  }
+  state.tacheCourante = tache;
+  state.tacheIndex = 0;
+  demarrerExerciceDeTache();
+}
+
+function demarrerExerciceDeTache() {
+  const ex = state.tacheCourante.exercices[state.tacheIndex];
+  if (!ex) return;
+  state.exerciceCourant = ex;
+  state.eleve = { tentatives: 0, indices: 0, debut: Date.now(), exerciceTermine: false };
+  afficherExercice(ex);
+  mettreAJourProgressionTache();
+}
+
+function mettreAJourProgressionTache() {
+  const bar = document.getElementById('tache-progress-bar');
+  if (!state.tacheCourante) { bar.classList.add('hidden'); return; }
+  bar.classList.remove('hidden');
+  const total = state.tacheCourante.exercices.length;
+  const current = state.tacheIndex + 1;
+  const pct = Math.round((state.tacheIndex / total) * 100);
+  document.getElementById('tache-progress-label').textContent =
+    `${state.tacheCourante.titre} — Exercice ${current}/${total}`;
+  document.getElementById('tache-progress-fill').style.width = pct + '%';
+  // Points de progression
+  const dots = document.getElementById('tache-dots');
+  dots.innerHTML = '';
+  for (let i = 0; i < total; i++) {
+    const d = document.createElement('div');
+    d.style.cssText = `width:10px; height:10px; border-radius:50%; background:${
+      i < state.tacheIndex ? '#16a34a' : i === state.tacheIndex ? '#2563eb' : '#d1d5db'
+    };`;
+    dots.appendChild(d);
   }
 }
 
@@ -291,10 +339,27 @@ async function enregistrerResultat(ex, reponse, correct) {
 document.getElementById('btn-valider').addEventListener('click', validerReponse);
 
 document.getElementById('btn-exercice-suivant').addEventListener('click', () => {
-  showView('view-eleve-accueil');
+  if (state.tacheCourante) {
+    state.tacheIndex++;
+    if (state.tacheIndex < state.tacheCourante.exercices.length) {
+      // Exercice suivant dans la tâche
+      demarrerExerciceDeTache();
+    } else {
+      // Tâche terminée
+      state.tacheCourante = null;
+      state.tacheIndex = 0;
+      document.getElementById('tache-progress-bar').classList.add('hidden');
+      showView('view-eleve-accueil');
+    }
+  } else {
+    showView('view-eleve-accueil');
+  }
 });
 
 document.getElementById('btn-el-retour').addEventListener('click', () => {
+  state.tacheCourante = null;
+  state.tacheIndex = 0;
+  document.getElementById('tache-progress-bar').classList.add('hidden');
   showView('view-eleve-accueil');
 });
 
@@ -322,6 +387,7 @@ function afficherOnglet(tab) {
   document.querySelectorAll('.tab-content').forEach(t => t.classList.add('hidden'));
   document.getElementById(tab).classList.remove('hidden');
   if (tab === 'tab-exercices') chargerExercices();
+  if (tab === 'tab-taches') chargerTaches();
   if (tab === 'tab-classe') chargerClasse();
   if (tab === 'tab-resultats') chargerResultats();
 }
@@ -488,6 +554,163 @@ async function chargerClasse() {
     ul.appendChild(li);
   });
 }
+
+// --- Tâches ---
+async function chargerTaches() {
+  const liste = document.getElementById('ens-liste-taches');
+  liste.innerHTML = '<p class="loading">Chargement...</p>';
+  const taches = await getTachesByEnseignant(state.user.id);
+  state.taches = taches;
+  // Mettre à jour le select dans l'éditeur de tâche
+  mettreAJourSelectExercices();
+  if (taches.length === 0) {
+    liste.innerHTML = '<p class="empty">Aucune tâche. Créez-en une ci-dessus.</p>';
+    return;
+  }
+  liste.innerHTML = '';
+  taches.forEach(t => {
+    const item = document.createElement('div');
+    item.className = 'exercice-item';
+    const nbEx = t.exercices?.length || 0;
+    item.innerHTML = `
+      <div>
+        <strong>${t.titre}</strong>
+        <span class="badge" style="background:#ede9fe; color:#7c3aed;">${nbEx} exercice${nbEx !== 1 ? 's' : ''}</span>
+      </div>
+      <div class="item-actions">
+        <button class="btn-sm btn-assign" onclick="ouvrirEditeurTache('${t.id}')">Éditer</button>
+        <button class="btn-sm btn-assign" onclick="assignerTacheId('${t.id}')">Assigner</button>
+        <button class="btn-sm btn-tbi" onclick="ouvrirTBITacheId('${t.id}')">TBI</button>
+        <button class="btn-sm btn-danger" onclick="supprimerTache('${t.id}')">Supprimer</button>
+      </div>
+    `;
+    liste.appendChild(item);
+  });
+}
+
+function mettreAJourSelectExercices() {
+  const sel = document.getElementById('select-add-exercice');
+  if (!sel) return;
+  sel.innerHTML = '<option value="">— Choisir un exercice à ajouter —</option>';
+  state.exercices.forEach(ex => {
+    const opt = document.createElement('option');
+    opt.value = ex.id;
+    opt.textContent = ex.titre || `${ex.terme_a} ${ex.operateur} ${ex.terme_b}`;
+    sel.appendChild(opt);
+  });
+}
+
+function ouvrirEditeurTache(tacheId) {
+  state.tacheActive = state.taches.find(t => t.id === tacheId);
+  if (!state.tacheActive) return;
+  const editeur = document.getElementById('tache-editeur');
+  document.getElementById('tache-editeur-titre').textContent = state.tacheActive.titre;
+  editeur.classList.remove('hidden');
+  editeur.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  rafraichirExercicesTache();
+}
+
+function fermerEditeurTache() {
+  document.getElementById('tache-editeur').classList.add('hidden');
+  state.tacheActive = null;
+}
+
+function rafraichirExercicesTache() {
+  const liste = document.getElementById('tache-exercices-liste');
+  const exos = state.tacheActive?.exercices || [];
+  if (exos.length === 0) {
+    liste.innerHTML = '<p class="empty">Aucun exercice dans cette tâche.</p>';
+    return;
+  }
+  liste.innerHTML = '';
+  exos.forEach((ex, idx) => {
+    const row = document.createElement('div');
+    row.className = 'exercice-item';
+    row.style.cssText = 'margin-bottom:8px; padding:10px 14px;';
+    row.innerHTML = `
+      <div>
+        <span style="color:#9ca3af; margin-right:8px; font-weight:700;">${idx + 1}.</span>
+        <strong>${ex.titre || `${ex.terme_a} ${ex.operateur} ${ex.terme_b}`}</strong>
+        <span class="badge niveau-${ex.niveau}">N${ex.niveau}</span>
+      </div>
+      <button class="btn-sm btn-danger" onclick="retirerExoTache('${ex.id}')">Retirer</button>
+    `;
+    liste.appendChild(row);
+  });
+}
+
+async function ajouterExoATache() {
+  if (!state.tacheActive) return;
+  const sel = document.getElementById('select-add-exercice');
+  const exerciceId = sel.value;
+  if (!exerciceId) return;
+  const ordre = state.tacheActive.exercices?.length || 0;
+  try {
+    await ajouterExerciceATache(state.tacheActive.id, exerciceId, ordre);
+    await chargerTaches();
+    // Rouvrir l'éditeur sur la même tâche
+    ouvrirEditeurTache(state.tacheActive.id);
+  } catch (err) {
+    alert('Erreur : ' + err.message);
+  }
+}
+
+async function retirerExoTache(exerciceId) {
+  if (!state.tacheActive) return;
+  try {
+    await retirerExerciceDeTache(state.tacheActive.id, exerciceId);
+    await chargerTaches();
+    ouvrirEditeurTache(state.tacheActive.id);
+  } catch (err) {
+    alert('Erreur : ' + err.message);
+  }
+}
+
+async function assignerTacheId(tacheId) {
+  if (!state.classe) {
+    alert('Créez d\'abord une classe dans l\'onglet "Ma classe".');
+    return;
+  }
+  try {
+    await assignerTache(tacheId, state.classe.id);
+    const t = state.taches.find(t => t.id === tacheId);
+    alert(`Tâche "${t?.titre}" assignée à "${state.classe.nom}" !`);
+  } catch (err) {
+    alert('Erreur : ' + err.message);
+  }
+}
+
+async function assignerTacheActive() {
+  if (state.tacheActive) await assignerTacheId(state.tacheActive.id);
+}
+
+function ouvrirTBITacheId(tacheId) {
+  window.open(`tbi.html?tache=${tacheId}&classe=${state.classe?.id || ''}`, '_blank');
+}
+function ouvrirTBITache() {
+  if (state.tacheActive) ouvrirTBITacheId(state.tacheActive.id);
+}
+
+async function supprimerTache(id) {
+  if (!confirm('Supprimer cette tâche ?')) return;
+  await deleteTache(id);
+  fermerEditeurTache();
+  await chargerTaches();
+}
+
+// Créer une tâche
+document.getElementById('form-create-tache').addEventListener('submit', async e => {
+  e.preventDefault();
+  const titre = document.getElementById('tache-titre').value.trim();
+  if (!titre) return;
+  try {
+    await createTache(titre, null, state.user.id);
+    e.target.reset();
+    await chargerTaches();
+  } catch (err) {
+    alert('Erreur : ' + err.message);
+  }
+});
 
 // --- Résultats ---
 async function chargerResultats() {

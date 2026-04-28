@@ -196,6 +196,80 @@ async function getResultatsByExercice(exerciceId) {
   return data;
 }
 
+// ---- TÂCHES --------------------------------------------------
+
+async function createTache(titre, description, enseignantId) {
+  const { data, error } = await _sb.from('er_taches')
+    .insert({ titre, description: description || null, enseignant_id: enseignantId })
+    .select().single();
+  if (error) throw error;
+  return data;
+}
+
+async function getTachesByEnseignant(enseignantId) {
+  const { data, error } = await _sb.from('er_taches')
+    .select('*, er_taches_exercices(*, er_exercices(*))')
+    .eq('enseignant_id', enseignantId)
+    .order('created_at', { ascending: false });
+  if (error) throw error;
+  // Trier les exercices par ordre dans chaque tâche
+  return data.map(t => ({
+    ...t,
+    exercices: (t.er_taches_exercices || [])
+      .sort((a, b) => a.ordre - b.ordre)
+      .map(te => te.er_exercices)
+  }));
+}
+
+async function deleteTache(id) {
+  const { error } = await _sb.from('er_taches').delete().eq('id', id);
+  if (error) throw error;
+}
+
+async function ajouterExerciceATache(tacheId, exerciceId, ordre) {
+  const { data, error } = await _sb.from('er_taches_exercices')
+    .insert({ tache_id: tacheId, exercice_id: exerciceId, ordre })
+    .select().single();
+  if (error) throw error;
+  return data;
+}
+
+async function retirerExerciceDeTache(tacheId, exerciceId) {
+  const { error } = await _sb.from('er_taches_exercices')
+    .delete()
+    .eq('tache_id', tacheId)
+    .eq('exercice_id', exerciceId);
+  if (error) throw error;
+}
+
+async function assignerTache(tacheId, classeId) {
+  const { data, error } = await _sb.from('er_assignations_taches')
+    .upsert({ tache_id: tacheId, classe_id: classeId, active: true },
+             { onConflict: 'tache_id,classe_id' })
+    .select().single();
+  if (error) throw error;
+  return data;
+}
+
+async function getTachesAssigneesAClasse(classeId) {
+  const { data, error } = await _sb.from('er_assignations_taches')
+    .select('*, er_taches(*, er_taches_exercices(*, er_exercices(*)))')
+    .eq('classe_id', classeId)
+    .eq('active', true)
+    .order('created_at', { ascending: false });
+  if (error) throw error;
+  return data.map(a => {
+    const t = a.er_taches;
+    return {
+      ...t,
+      assignation_id: a.id,
+      exercices: (t.er_taches_exercices || [])
+        .sort((a, b) => a.ordre - b.ordre)
+        .map(te => te.er_exercices)
+    };
+  });
+}
+
 // ---- REALTIME ------------------------------------------------
 
 /**
