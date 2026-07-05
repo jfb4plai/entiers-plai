@@ -1,16 +1,17 @@
 /* ============================================================
    style.css — Entiers Relatifs PLAI
    Police large, contraste élevé, accessible dys/dyscalculie
+   Branding PLAI : teal #0a9370, orange #f97316, police Inter
    Fondements : Barrouillet et al. (2007) hal-01570674
    ============================================================ */
 
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
 :root {
-  --bleu:     #2563eb;
-  --bleu-cl:  #dbeafe;
-  --orange:   #d97706;
-  --orange-cl:#fef3c7;
+  --teal:     #0a9370;
+  --teal-cl:  #e1f5ee;
+  --orange:   #f97316;
+  --orange-cl:#ffedd5;
   --violet:   #7c3aed;
   --violet-cl:#ede9fe;
   --vert:     #16a34a;
@@ -27,7 +28,7 @@
 }
 
 body {
-  font-family: 'Segoe UI', Arial, sans-serif;
+  font-family: 'Inter', 'Segoe UI', Arial, sans-serif;
   font-size: 17px;
   color: var(--texte);
   background: var(--fond);
@@ -64,10 +65,25 @@ p { line-height: 1.6; }
 .error { color: var(--rouge); }
 .loading { color: var(--gris); }
 
+/* ---- Logo PLAI ---------------------------------------------- */
+
+.plai-logo-img {
+  height: 32px;
+  width: auto;
+  border-radius: 6px;
+  vertical-align: middle;
+}
+
+.header-brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
 /* ---- Boutons ----------------------------------------------- */
 
 .btn-primary {
-  background: var(--bleu);
+  background: var(--teal);
   color: white;
   border: none;
   border-radius: 8px;
@@ -77,8 +93,8 @@ p { line-height: 1.6; }
   cursor: pointer;
   transition: background .15s;
 }
-.btn-primary:hover { background: #1d4ed8; }
-.btn-primary:disabled { background: #93c5fd; cursor: not-allowed; }
+.btn-primary:hover { background: #077a5c; }
+.btn-primary:disabled { background: #9ccebf; opacity: .6; cursor: not-allowed; }
 
 .btn-secondary {
   background: var(--gris-cl);
@@ -99,8 +115,8 @@ p { line-height: 1.6; }
   cursor: pointer;
   font-weight: 600;
 }
-.btn-assign { background: var(--bleu-cl); color: var(--bleu); }
-.btn-assign:hover { background: var(--bleu); color: white; }
+.btn-assign { background: var(--teal-cl); color: var(--teal); }
+.btn-assign:hover { background: var(--teal); color: white; }
 .btn-tbi { background: var(--violet-cl); color: var(--violet); }
 .btn-tbi:hover { background: var(--violet); color: white; }
 .btn-danger { background: var(--rouge-cl); color: var(--rouge); }
@@ -127,8 +143,8 @@ select {
 }
 input:focus, select:focus {
   outline: none;
-  border-color: var(--bleu);
-  box-shadow: 0 0 0 3px var(--bleu-cl);
+  border-color: var(--teal);
+  box-shadow: 0 0 0 3px var(--teal-cl);
 }
 
 .form-row { display: flex; gap: 12px; flex-wrap: wrap; }
@@ -151,14 +167,14 @@ input:focus, select:focus {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(135deg, #1e3a8a 0%, #2563eb 60%, #7c3aed 100%);
+  background: linear-gradient(135deg, #064e3b 0%, #0a9370 60%, #f97316 100%);
 }
 
 #view-login .card {
   text-align: center;
 }
 
-#view-login h1 { color: var(--bleu); }
+#view-login h1 { color: var(--teal); }
 
 .login-subtitle {
   color: var(--gris);
@@ -183,8 +199,8 @@ input:focus, select:focus {
 }
 .btn-login-role:hover { transform: translateY(-2px); box-shadow: 0 4px 16px rgba(0,0,0,.15); }
 
-.btn-enseignant { background: var(--bleu); color: white; }
-.btn-eleve { background: var(--vert); color: white; }
+.btn-enseignant { background: var(--teal); color: white; }
+.btn-eleve { background: var(--orange); color: white; }
 
 #view-login-enseignant, #view-login-eleve {
   display: flex;
@@ -196,7 +212,7 @@ input:focus, select:focus {
 .link-btn {
   background: none;
   border: none;
-  color: var(--bleu);
+  color: var(--teal);
   cursor: pointer;
   font-size: .9rem;
   text-decoration: underline;
@@ -210,7 +226,7 @@ input:focus, select:focus {
 }
 
 .ens-header {
-  background: var(--bleu);
+  background: var(--teal);
   color: white;
   padding: 16px 28px;
   display: flex;
@@ -227,7 +243,7 @@ input:focus, select:focus {
 
 /* Classe rapide */
 .classe-rapide {
-  background: var(--bleu-cl);
+  background: var(--teal-cl);
   border-radius: var(--radius);
   padding: 14px 20px;
   display: flex;
@@ -240,7 +256,7 @@ input:focus, select:focus {
   font-size: 2rem;
   font-weight: 900;
   letter-spacing: 4px;
-  color: var(--bleu);
+  color: var(--teal);
   font-family: monospace;
 }
 .classe-rapide .libelle { font-size: .85rem; color: var(--gris); }
@@ -264,8 +280,8 @@ input:focus, select:focus {
   margin-bottom: -2px;
 }
 .tab-btn.active {
-  color: var(--bleu);
-  border-bottom-color: var(--bleu);
+  color: var(--teal);
+  border-bottom-color: var(--teal);
 }
 
 /* Formulaire création exercice */
@@ -301,7 +317,7 @@ input:focus, select:focus {
   margin-left: 8px;
 }
 .niveau-1 { background: var(--vert-cl); color: var(--vert); }
-.niveau-2 { background: var(--bleu-cl); color: var(--bleu); }
+.niveau-2 { background: var(--teal-cl); color: var(--teal); }
 .niveau-3 { background: var(--orange-cl); color: var(--orange); }
 .niveau-4 { background: var(--rouge-cl); color: var(--rouge); }
 
@@ -344,7 +360,7 @@ input:focus, select:focus {
 
 /* Classe */
 .classe-info-box {
-  background: var(--bleu-cl);
+  background: var(--teal-cl);
   border-radius: var(--radius);
   padding: 20px;
   margin-bottom: 20px;
@@ -353,7 +369,7 @@ input:focus, select:focus {
   font-size: 3rem;
   font-weight: 900;
   letter-spacing: 6px;
-  color: var(--bleu);
+  color: var(--teal);
   font-family: monospace;
   display: block;
   margin: 8px 0;
@@ -374,14 +390,14 @@ input:focus, select:focus {
 /* ---- Interface élève --------------------------------------- */
 
 #view-eleve-accueil {
-  background: linear-gradient(180deg, #eff6ff 0%, var(--fond) 100%);
+  background: linear-gradient(180deg, var(--teal-cl) 0%, var(--fond) 100%);
 }
 
 .el-header {
   text-align: center;
   padding: 20px 0 28px;
 }
-.el-header h1 { color: var(--bleu); }
+.el-header h1 { color: var(--teal); }
 .el-bienvenue { color: var(--gris); font-size: 1rem; margin-top: 4px; }
 
 .exercice-card {
@@ -423,7 +439,7 @@ input:focus, select:focus {
 .terme {
   font-size: 2.8rem;
   font-weight: 900;
-  color: var(--bleu);
+  color: var(--teal);
 }
 .operateur {
   font-size: 2.8rem;
@@ -496,7 +512,7 @@ input:focus, select:focus {
 .retro-indice {
   background: var(--orange-cl);
   border-left: 5px solid var(--orange);
-  color: #78350f;
+  color: #7c2d12;
 }
 .retro-revele {
   background: var(--violet-cl);
