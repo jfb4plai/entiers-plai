@@ -134,6 +134,14 @@ input:focus, select:focus {
 .form-row { display: flex; gap: 12px; flex-wrap: wrap; }
 .form-row .form-group { flex: 1; min-width: 80px; }
 
+.form-help {
+  font-size: .82rem;
+  color: var(--gris);
+  margin-top: 6px;
+  line-height: 1.4;
+}
+.form-help.form-help-row { flex-basis: 100%; margin-top: -8px; margin-bottom: 8px; }
+
 .error-msg { color: var(--rouge); font-size: .9rem; margin-top: 8px; }
 
 /* ---- Login ------------------------------------------------- */

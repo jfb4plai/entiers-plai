@@ -134,6 +134,7 @@
             <div class="form-group" style="flex:2;">
               <label for="ex-titre-input">Titre (optionnel)</label>
               <input type="text" id="ex-titre-input" placeholder="Ex : Positifs faciles">
+              <p class="form-help">Sert à repérer l'exercice dans vos listes et lors de l'assignation à une tâche. Sans titre, l'exercice est identifié par ses termes (ex : « 5 + 3 »).</p>
             </div>
             <div class="form-group">
               <label for="ex-niveau">Niveau</label>
@@ -143,6 +144,7 @@
                 <option value="3">3 — Entiers relatifs</option>
                 <option value="4">4 — Libre</option>
               </select>
+              <p class="form-help">Fixe la difficulté proposée à l'élève. 1-2 sécurisent l'entrée dans la matière (pas de négatifs) ; 3 introduit les relatifs complets ; 4 vous laisse choisir librement A et B ci-dessous.</p>
             </div>
           </div>
           <div class="form-row" style="align-items:flex-end;">
@@ -171,6 +173,7 @@
               <label>&nbsp;</label>
               <button type="submit" class="btn-primary" style="width:100%; padding:10px;">Créer</button>
             </div>
+            <p class="form-help form-help-row">A et B sont les deux termes de l'opération (A + B ou A − B) : par exemple A = 5, opération « − », B = 8 donne l'exercice « 5 − 8 ». Laissez les champs vides et cliquez sur « Aléatoire » pour générer un exercice conforme au niveau choisi.</p>
           </div>
         </form>
       </div>
@@ -191,6 +194,7 @@
             <div class="form-group" style="flex:2;">
               <label for="tache-titre">Titre de la tâche</label>
               <input type="text" id="tache-titre" placeholder="Ex : Entiers positifs — série 1" required>
+              <p class="form-help">Ce titre est visible par les élèves dans leur liste de tâches : choisissez un intitulé clair (ex : nom de la séquence ou de la semaine). Vous ajouterez les exercices juste après la création.</p>
             </div>
             <div class="form-group" style="max-width:160px; align-self:flex-end;">
               <button type="submit" class="btn-primary" style="width:100%; padding:10px;">Créer</button>
@@ -236,9 +240,17 @@
 
       <!-- Formulaire toujours visible -->
       <h3>Créer une nouvelle classe</h3>
-      <form id="form-create-classe" style="display:flex; gap:12px; margin-bottom:24px; flex-wrap:wrap;">
-        <input type="text" id="input-classe-nom" placeholder="Ex : 3B Maths" style="flex:1; min-width:160px;">
-        <button type="submit" class="btn-primary">Créer</button>
+      <form id="form-create-classe" style="margin-bottom:24px;">
+        <div class="form-group" style="display:flex; gap:12px; flex-wrap:wrap; margin-bottom:0;">
+          <div style="flex:1; min-width:160px;">
+            <label for="input-classe-nom">Nom de la classe</label>
+            <input type="text" id="input-classe-nom" placeholder="Ex : 3B Maths">
+          </div>
+          <div style="align-self:flex-end;">
+            <button type="submit" class="btn-primary">Créer</button>
+          </div>
+        </div>
+        <p class="form-help">Nom qui identifiera la classe dans votre tableau de bord (ex : « 3B Maths » ou « Groupe remédiation »). Un code d'accès à 6 lettres est généré automatiquement pour que vos élèves rejoignent cette classe.</p>
       </form>
 
       <!-- Liste élèves (masquée si aucune classe) -->
