@@ -221,6 +221,20 @@ async function getTachesByEnseignant(enseignantId) {
   }));
 }
 
+async function getTacheById(tacheId) {
+  const { data, error } = await _sb.from('er_taches')
+    .select('*, er_taches_exercices(*, er_exercices(*))')
+    .eq('id', tacheId)
+    .single();
+  if (error) throw error;
+  return {
+    ...data,
+    exercices: (data.er_taches_exercices || [])
+      .sort((a, b) => a.ordre - b.ordre)
+      .map(te => te.er_exercices)
+  };
+}
+
 async function deleteTache(id) {
   const { error } = await _sb.from('er_taches').delete().eq('id', id);
   if (error) throw error;

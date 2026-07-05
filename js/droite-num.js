@@ -31,8 +31,11 @@ class DroiteNumerique {
     this.compact = options.compact ?? false;
 
     // Dimensions internes SVG (viewBox)
+    // lineH doit laisser assez de place sous l'axe pour le label "0"
+    // (tickH=10 + décalage 14 + hauteur de texte) sans quoi il est
+    // rogné par le viewBox — cf. retour terrain mode TBI.
     this.W = 900;
-    this.lineH = this.compact ? 60 : 80;
+    this.lineH = this.compact ? 84 : 88;
     this.paddingX = 20;
 
     this.a = 0;

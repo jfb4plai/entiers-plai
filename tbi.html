@@ -163,6 +163,59 @@
       margin-right: 4px;
       vertical-align: middle;
     }
+
+    /* Instructions élèves + navigation tâche */
+    #tbi-instructions {
+      background: #0c4a3a;
+      border: 1px solid #0a9370;
+      color: #d1fae5;
+      border-radius: 8px;
+      padding: 10px 18px;
+      font-size: .95rem;
+      margin-bottom: 20px;
+    }
+    #tbi-instructions strong { color: #6ee7b7; }
+
+    #tbi-assign-warning {
+      background: #451a03;
+      border: 1px solid #f97316;
+      color: #fed7aa;
+      border-radius: 8px;
+      padding: 12px 18px;
+      font-size: .95rem;
+      margin-bottom: 20px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+    .btn-tbi-assign {
+      background: #f97316;
+      color: #1e293b;
+      border: none;
+      border-radius: 8px;
+      padding: 8px 18px;
+      font-weight: 800;
+      cursor: pointer;
+    }
+    .btn-tbi-assign:hover { background: #fb923c; }
+
+    #tbi-nav {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      margin-bottom: 20px;
+    }
+    #tbi-nav-label {
+      color: #94a3b8;
+      font-size: .95rem;
+      font-weight: 700;
+    }
+    .btn-tbi-ctrl:disabled {
+      opacity: .4;
+      cursor: not-allowed;
+    }
   </style>
 </head>
 <body>
@@ -177,6 +230,24 @@
 </div>
 
 <div id="tbi-body">
+
+  <!-- Instructions élèves -->
+  <div id="tbi-instructions">
+    Vos élèves répondent depuis leur propre appareil (ordinateur, tablette, smartphone) en saisissant le code classe <strong id="tbi-code-inline">—</strong> sur la page d'accueil, puis en choisissant cet exercice.
+  </div>
+
+  <!-- Avertissement si l'exercice/la tâche n'est pas assigné(e) -->
+  <div id="tbi-assign-warning" class="hidden">
+    <span>⚠ Cet exercice n'est pas encore assigné à la classe : les élèves ne le voient pas dans leur liste et ne peuvent pas y répondre.</span>
+    <button class="btn-tbi-assign" id="btn-tbi-assigner">Assigner maintenant</button>
+  </div>
+
+  <!-- Navigation entre exercices d'une tâche -->
+  <div id="tbi-nav" class="hidden">
+    <button class="btn-tbi-ctrl" id="btn-tbi-prev">◀ Exercice précédent</button>
+    <span id="tbi-nav-label">Exercice 1 / 1</span>
+    <button class="btn-tbi-ctrl" id="btn-tbi-next">Exercice suivant ▶</button>
+  </div>
 
   <!-- Contrôles enseignant -->
   <div id="tbi-controls">
@@ -238,53 +309,122 @@
 
 // --- Paramètres depuis l'URL ---
 const params = new URLSearchParams(location.search);
-const exerciceId = params.get('exo');
+const tacheId = params.get('tache');
 const classeId = params.get('classe');
+let exerciceId = params.get('exo');
 
 let droiteTBI = null;
 let exerciceCourant = null;
-let resultatsMap = {};   // eleveId → résultat
+let exercicesTache = [];   // liste ordonnée si mode tâche
+let indexCourant = 0;
+let resultatsMap = {};     // eleveId → résultat
 let revele = false;
+let resultatsChannel = null;
 
 async function init() {
-  if (!exerciceId || !classeId) {
+  if ((!exerciceId && !tacheId) || !classeId) {
     document.body.innerHTML = '<p style="color:red; padding:40px;">Paramètres manquants. Ouvrir depuis le dashboard enseignant.</p>';
     return;
   }
 
-  // Charger l'exercice
-  const { data: ex } = await _sb.from('er_exercices').select('*').eq('id', exerciceId).single();
-  if (!ex) { document.body.innerHTML = '<p style="color:red; padding:40px;">Exercice introuvable.</p>'; return; }
-  exerciceCourant = ex;
-
   // Charger la classe
   const { data: classe } = await _sb.from('er_classes').select('*').eq('id', classeId).single();
-  if (classe) document.getElementById('tbi-code').textContent = classe.code_acces;
+  if (classe) {
+    document.getElementById('tbi-code').textContent = classe.code_acces;
+    document.getElementById('tbi-code-inline').textContent = classe.code_acces;
+  }
 
-  // Afficher l'énoncé
+  if (tacheId) {
+    // Mode tâche : charger tous les exercices dans l'ordre
+    const tache = await getTacheById(tacheId);
+    exercicesTache = tache.exercices || [];
+    if (exercicesTache.length === 0) {
+      document.body.innerHTML = '<p style="color:red; padding:40px;">Cette tâche ne contient aucun exercice.</p>';
+      return;
+    }
+    document.getElementById('tbi-nav').classList.remove('hidden');
+    document.getElementById('btn-tbi-prev').addEventListener('click', () => allerExercice(indexCourant - 1));
+    document.getElementById('btn-tbi-next').addEventListener('click', () => allerExercice(indexCourant + 1));
+    await allerExercice(0);
+  } else {
+    // Mode exercice unique
+    const { data: ex } = await _sb.from('er_exercices').select('*').eq('id', exerciceId).single();
+    if (!ex) { document.body.innerHTML = '<p style="color:red; padding:40px;">Exercice introuvable.</p>'; return; }
+    await chargerExercice(ex);
+  }
+
+  // Écoute temps réel (une seule souscription, réutilisée entre exercices)
+  resultatsChannel = subscribeResultats(classeId, async () => {
+    const resultats = await getResultatsByExercice(exerciceId);
+    resultatsMap = {};
+    resultats.forEach(r => { resultatsMap[r.eleve_id] = r; });
+    rafraichirAffichage();
+  });
+}
+
+// Change l'exercice affiché dans une tâche (index dans exercicesTache)
+async function allerExercice(i) {
+  if (i < 0 || i >= exercicesTache.length) return;
+  indexCourant = i;
+  document.getElementById('tbi-nav-label').textContent = `Exercice ${i + 1} / ${exercicesTache.length}`;
+  document.getElementById('btn-tbi-prev').disabled = i === 0;
+  document.getElementById('btn-tbi-next').disabled = i === exercicesTache.length - 1;
+  await chargerExercice(exercicesTache[i]);
+}
+
+// Affiche un exercice (énoncé + droite numérique) et recharge ses résultats
+async function chargerExercice(ex) {
+  exerciceCourant = ex;
+  exerciceId = ex.id;
+  revele = false;
+
   document.getElementById('tbi-a').textContent = ex.terme_a;
   document.getElementById('tbi-op').textContent = ex.operateur;
   document.getElementById('tbi-b').textContent = ex.terme_b;
   const bEff = ex.operateur === '+' ? ex.terme_b : -ex.terme_b;
   const correct = ex.terme_a + bEff;
   document.getElementById('tbi-res').dataset.val = correct;
+  document.getElementById('tbi-res').textContent = '?';
+  document.getElementById('tbi-res').classList.add('hidden-val');
+  document.getElementById('btn-tbi-reveal').textContent = 'Révéler la réponse';
 
-  // Droite numérique
-  droiteTBI = new DroiteNumerique('tbi-dn-container', { showResult: false, compact: true });
+  if (!droiteTBI) droiteTBI = new DroiteNumerique('tbi-dn-container', { showResult: false, compact: true });
   droiteTBI.render(ex.terme_a, ex.terme_b, ex.operateur, false);
 
-  // Charger résultats existants
+  await verifierAssignation();
+
   const resultatsInit = await getResultatsByExercice(exerciceId);
+  resultatsMap = {};
   resultatsInit.forEach(r => { resultatsMap[r.eleve_id] = r; });
   rafraichirAffichage();
+}
 
-  // Écoute temps réel
-  subscribeResultats(classeId, async () => {
-    const resultats = await getResultatsByExercice(exerciceId);
-    resultatsMap = {};
-    resultats.forEach(r => { resultatsMap[r.eleve_id] = r; });
-    rafraichirAffichage();
-  });
+// Vérifie que l'exercice (ou la tâche) est bien assigné(e) à la classe,
+// sinon les élèves ne le voient pas dans leur liste et ne peuvent pas répondre.
+async function verifierAssignation() {
+  const warning = document.getElementById('tbi-assign-warning');
+  const btnAssigner = document.getElementById('btn-tbi-assigner');
+  let assigne = false;
+
+  if (tacheId) {
+    const { data } = await _sb.from('er_assignations_taches')
+      .select('id').eq('tache_id', tacheId).eq('classe_id', classeId).eq('active', true).maybeSingle();
+    assigne = !!data;
+    btnAssigner.onclick = async () => {
+      await assignerTache(tacheId, classeId);
+      warning.classList.add('hidden');
+    };
+  } else {
+    const { data } = await _sb.from('er_assignations')
+      .select('id').eq('exercice_id', exerciceId).eq('classe_id', classeId).eq('active', true).maybeSingle();
+    assigne = !!data;
+    btnAssigner.onclick = async () => {
+      await assignerExercice(exerciceId, classeId);
+      warning.classList.add('hidden');
+    };
+  }
+
+  warning.classList.toggle('hidden', assigne);
 }
 
 function rafraichirAffichage() {
