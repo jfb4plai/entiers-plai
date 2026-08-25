@@ -27,6 +27,22 @@ async function signupEnseignant(email, password) {
   return data.user;
 }
 
+async function sendPasswordReset(email) {
+  const { error } = await _sb.auth.resetPasswordForEmail(email, {
+    redirectTo: window.location.origin + window.location.pathname
+  });
+  if (error) throw error;
+}
+
+async function updatePassword(newPassword) {
+  const { error } = await _sb.auth.updateUser({ password: newPassword });
+  if (error) throw error;
+}
+
+function onAuthStateChange(callback) {
+  return _sb.auth.onAuthStateChange(callback);
+}
+
 // ---- CLASSES --------------------------------------------------
 
 async function createClasse(nom, enseignantId) {

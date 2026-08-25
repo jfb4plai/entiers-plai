@@ -36,6 +36,22 @@ function showView(id) {
 
 // ---- Init ---------------------------------------------------
 async function init() {
+  // Arrivée via QR code (?code=XXXXXX) : va directement au formulaire
+  // élève avec le code pré-rempli, il ne reste que le prénom à saisir.
+  const codeScan = new URLSearchParams(location.search).get('code');
+  if (codeScan) {
+    showView('view-login-eleve');
+    document.getElementById('el-code').value = codeScan.toUpperCase();
+    document.getElementById('el-nom').focus();
+    return;
+  }
+
+  onAuthStateChange((event) => {
+    if (event === 'PASSWORD_RECOVERY') {
+      showView('view-recovery');
+    }
+  });
+
   const user = await getCurrentUser();
   if (user) {
     state.user = user;
@@ -98,6 +114,65 @@ document.getElementById('btn-signup').addEventListener('click', async () => {
     err.textContent = 'Compte créé ! Vérifiez votre email pour confirmer.';
   } catch (ex) {
     err.style.color = 'red';
+    err.textContent = ex.message;
+  }
+});
+
+// Mot de passe oublié
+document.getElementById('btn-forgot').addEventListener('click', () => {
+  document.getElementById('ens-pwd-group').classList.add('hidden');
+  document.getElementById('btn-submit-login').classList.add('hidden');
+  document.getElementById('btn-send-reset').classList.remove('hidden');
+  document.getElementById('btn-signup').classList.add('hidden');
+  document.getElementById('btn-forgot').classList.add('hidden');
+  document.getElementById('btn-cancel-reset').classList.remove('hidden');
+  document.getElementById('ens-login-error').textContent = '';
+});
+
+document.getElementById('btn-cancel-reset').addEventListener('click', () => {
+  document.getElementById('ens-pwd-group').classList.remove('hidden');
+  document.getElementById('btn-submit-login').classList.remove('hidden');
+  document.getElementById('btn-send-reset').classList.add('hidden');
+  document.getElementById('btn-signup').classList.remove('hidden');
+  document.getElementById('btn-forgot').classList.remove('hidden');
+  document.getElementById('btn-cancel-reset').classList.add('hidden');
+  document.getElementById('ens-login-error').textContent = '';
+});
+
+document.getElementById('btn-send-reset').addEventListener('click', async () => {
+  const email = document.getElementById('ens-email').value.trim();
+  const err = document.getElementById('ens-login-error');
+  if (!email) {
+    err.style.color = 'red';
+    err.textContent = 'Entrez votre email.';
+    return;
+  }
+  try {
+    await sendPasswordReset(email);
+    err.style.color = 'green';
+    err.textContent = 'Email envoyé ! Vérifiez votre boîte mail.';
+  } catch (ex) {
+    err.style.color = 'red';
+    err.textContent = ex.message;
+  }
+});
+
+// Nouveau mot de passe (après lien de réinitialisation)
+document.getElementById('form-recovery').addEventListener('submit', async e => {
+  e.preventDefault();
+  const password = document.getElementById('rec-password').value;
+  const err = document.getElementById('rec-error');
+  err.textContent = '';
+  if (password.length < 6) {
+    err.textContent = '6 caractères minimum.';
+    return;
+  }
+  try {
+    await updatePassword(password);
+    state.user = await getCurrentUser();
+    state.role = 'enseignant';
+    await chargerDashboardEnseignant();
+  } catch (ex) {
     err.textContent = ex.message;
   }
 });
@@ -523,6 +598,24 @@ function ouvrirTBI(exerciceId) {
 }
 
 // --- Classe ---
+// Génère (ou régénère) le QR code permettant à un élève de rejoindre
+// la classe directement, sans taper le code d'accès à la main —
+// utile pour les élèves dyslexiques/dyspraxiques pour qui la saisie
+// manuelle d'un code à 6 lettres est une friction inutile.
+function afficherQRClasse(containerId, code) {
+  const container = document.getElementById(containerId);
+  if (!container || !code) return;
+  container.innerHTML = '';
+  const url = `${location.origin}${location.pathname.replace(/[^/]*$/, '')}index.html?code=${code}`;
+  new QRCode(container, {
+    text: url,
+    width: 120,
+    height: 120,
+    colorDark: '#111827',
+    colorLight: '#ffffff'
+  });
+}
+
 async function chargerClasse() {
   const infoBox = document.getElementById('classe-info-box');
   const elevesSection = document.getElementById('eleves-section');
@@ -540,6 +633,7 @@ async function chargerClasse() {
 
   document.getElementById('classe-display-nom').textContent = state.classe.nom;
   document.getElementById('classe-display-code').textContent = state.classe.code_acces;
+  afficherQRClasse('classe-qr', state.classe.code_acces);
 
   const eleves = await getElevesByClasse(state.classe.id);
   const ul = document.getElementById('liste-eleves');
