@@ -109,3 +109,11 @@ Après 3 tentatives infructueuses : révélation de la réponse avec explication
 | 2 | Résultat toujours positif |
 | 3 | Entiers relatifs complets |
 | 4 | Libre (enseignant choisit A et B) |
+
+## Licences
+
+- **Code** : [PolyForm Noncommercial 1.0.0](LICENSE). Usage non commercial uniquement.
+- **Contenus pédagogiques** : [CC BY-NC-SA 4.0](LICENSE-CONTENT.md). Réutilisation et adaptation non commerciales, avec attribution et partage dans les mêmes conditions.
+- **Logo et identité visuelle PLAI** : tous droits réservés (voir `LICENSE-CONTENT.md`).
+
+Auteur : Jean-François Beguin, Référent numérique, https://jfb4plai.com
